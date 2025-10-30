@@ -1,4 +1,4 @@
-# cert-bundler
+# cert-bundler-and-watcher
 
 Simple SSL cert renewal solution for private networks
 
