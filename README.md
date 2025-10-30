@@ -44,7 +44,7 @@ This will expect to find the cert bundle as named at the cert-bundle server runn
 If a new cert is discovered and installed, an attempt is made to reload a selection of well-known web servers - apache2, httpd, nginx, caddy etc.
 Replaced certs are preserved in their original directory.
 
-## Testing - the notes below assume your running tests from within WSL
+## Testing - the notes below assume you are running the server from within WSL
 
 Use `make test-server-fail` in WSL which assumes openssl in installed as it creates a 5-day cert.
 
