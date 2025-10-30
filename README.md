@@ -37,7 +37,7 @@ This will only accept requests from DNS-valid hosts in the example.com domain.
 ## Running the client application
 
 ```bash
-$ ./cert-watcher --cert /etc/ssl/path_to_cert_bundle.pem --well-known host.name.or.ip.address
+$ ./cert-watcher --cert /etc/ssl/path_to_cert_bundle.pem --cert-server host.name.or.ip.address
 ```
 
 This will expect to find the cert bundle as named at the cert-bundle server running on the defined host.
@@ -46,14 +46,14 @@ Replaced certs are preserved in their original directory.
 
 ## Testing - the notes below assume your running tests from within WSL
 
-Use `make test1` which assumes openssl in installed as it creates a 5-day cert.
+Use `make test-server-fail` in WSL which assumes openssl in installed as it creates a 5-day cert.
 
-Then, from another terminal, call `curl -v http://your.ip:47900/.well-known/ssl/localhost_bundle.com` to demo operation.
+Then call `curl -v http://your.ip:47900/.well-known/ssl/localhost_bundle.com` to demo operation.
 
-`test1` should intentially fail as it expects a dns entry from `example.local` domain.
+`test` should intentially fail as it expects a dns entry from `example.local` domain.
 
-Use `make test2` which recreates the certs but this time uses the `.mshone.net` domain - and tests when run on Windows should work.
+Use `make test-server-win` which recreates the certs but and permits the `mshone.net` domain - and tests when run on Windows should work.
 
-```
+You can also test from WSL:
 
-```
+Use `make test-server-wsl` which recreates the certs but and permits the `wsl.local` domain - and tests when run from a WSL session should work.
