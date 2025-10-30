@@ -1,10 +1,10 @@
 # cert-bundler
 
-Simple SSL cert renewal for private networks
+Simple SSL cert renewal solution for private networks
 
 ## What it does:
 
-Serves up an all-in-one ssl certificate file suitable for use in Apache/HTTPD and NGINX servers.
+**cert-bundler** Serves up an all-in-one ssl certificate file suitable for use in Apache/HTTPD and NGINX servers.
 
 It automatically retrieves intermediate certificates and servers the resultant bundle over http on port 47900.
 
@@ -12,9 +12,11 @@ The callable URL is http://address.of.server:47900/.well-known/ssl/<certificate_
 
 For example, `example_com_bundle.pem` or, if a wildcard cert, `wildcard_example_com_bundle.pem`.
 
+**cert-watcher** Runs on client servers and acquires certs and fresh certs from the above cert-bundler service.
+
 ## Development requirements
 
-The application was developed on WSL Ubuntu 24 with Go 1.25
+The applications were developed on WSL Ubuntu 24 with Go 1.24
 
 ## Runtime requirements
 
