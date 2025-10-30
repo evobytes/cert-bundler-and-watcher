@@ -28,25 +28,25 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
-	var certPathFlag, wellKnownHostFlag, webServiceFlag string
+	var certPathFlag, certServerHostFlag, webServiceFlag string
 	flag.StringVar(&certPathFlag, "cert", "", "path to CERT file (leaf/fullchain); its basename is used to form the well-known URL")
-	flag.StringVar(&wellKnownHostFlag, "well-known", "", "host or IP (no scheme/path); e.g. 1.2.3.4 or example.com")
+	flag.StringVar(&certServerHostFlag, "cert-server", "", "host or IP (no scheme/path); e.g. 1.2.3.4 or example.com")
 	flag.StringVar(&webServiceFlag, "web-service", "", "optional: service to reload (e.g. nginx, apache2, httpd)")
 	flag.Parse()
 
 	// env fallbacks
 	certPath := firstNonEmpty(certPathFlag, os.Getenv("CERT"))
-	wellKnownHost := firstNonEmpty(wellKnownHostFlag, os.Getenv("WELL_KNOWN"))
+	certServerHost := firstNonEmpty(certServerHostFlag, os.Getenv("BUNDLE_SERVER"))
 	webService := firstNonEmpty(webServiceFlag, os.Getenv("WEB_SERVICE"))
 
-	if strings.TrimSpace(certPath) == "" || strings.TrimSpace(wellKnownHost) == "" {
-		slog.Error("missing required parameters", "cert", certPath, "well_known_host", wellKnownHost)
+	if strings.TrimSpace(certPath) == "" || strings.TrimSpace(certServerHost) == "" {
+		slog.Error("missing required parameters", "cert", certPath, "bundle_server_host", certServerHost)
 		flag.Usage()
 		os.Exit(2)
 	}
 
 	// Manufacture URL from host + CERT basename
-	wkURL, err := buildWellKnownURL(certPath, wellKnownHost)
+	wkURL, err := buildWellKnownURL(certPath, certServerHost)
 	if err != nil {
 		slog.Error("build well-known URL failed", "error", err)
 		os.Exit(2)
@@ -128,7 +128,7 @@ func bootstrapFromWellKnown(certPath, wellKnownURL string) error {
 		return fmt.Errorf("parse well-known cert: %w", err)
 	}
 	if len(certs) == 0 {
-		return errors.New("no certificates found at well-known")
+		return errors.New("no certificates found at cert-server")
 	}
 	leaf := pickLeaf(certs)
 
