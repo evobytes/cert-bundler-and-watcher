@@ -1,0 +1,9 @@
+[Unit]
+Description=Certificate watcher (one-shot renewal check)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/cert-watcher/config.env
+ExecStart=/usr/bin/cert-watcher
