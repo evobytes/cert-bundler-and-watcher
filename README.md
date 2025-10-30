@@ -41,6 +41,8 @@ $ ./cert-watcher --cert /etc/ssl/path_to_cert_bundle.pem --well-known host.name.
 ```
 
 This will expect to find the cert bundle as named at the cert-bundle server running on the defined host.
+If a new cert is discovered and installed, an attempt is made to reload a selection of well-known web servers - apache2, httpd, nginx, caddy etc.
+Replaced certs are preserved in their original directory.
 
 ## Testing - the notes below assume your running tests from within WSL
 
