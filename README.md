@@ -26,13 +26,18 @@ The applications were developed on WSL Ubuntu 24 with Go 1.24
   - server.crt - contains the signed certificate
   - server.key - contains the private key
 
-## Running the application
+## Running the server application
 
 ```bash
 $ ./cert-bundler --cert path-to-cert.crt --key path-to-private.key --valid-client-domain example.com
 ```
 
 This will only accept requests from DNS-valid hosts in the example.com domain.
+
+## Running the client application
+
+```bash
+$ ./cert-watcher --cert path-to-cert-pem
 
 ## Testing - the notes below assume your running tests from within WSL
 
@@ -43,3 +48,4 @@ Then, from another terminal, call `curl -v http://your.ip:47900/.well-known/ssl/
 `test1` should intentially fail as it expects a dns entry from `example.local` domain.
 
 Use `make test2` which recreates the certs but this time uses the `.mshone.net` domain - and tests when run on Windows should work.
+```
