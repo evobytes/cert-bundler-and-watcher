@@ -28,35 +28,35 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
-	var pemPathFlag, wellKnownHostFlag, webServiceFlag string
-	flag.StringVar(&pemPathFlag, "pem", "", "path to PEM file (leaf/fullchain); its basename is used to form the well-known URL")
+	var certPathFlag, wellKnownHostFlag, webServiceFlag string
+	flag.StringVar(&certPathFlag, "cert", "", "path to CERT file (leaf/fullchain); its basename is used to form the well-known URL")
 	flag.StringVar(&wellKnownHostFlag, "well-known", "", "host or IP (no scheme/path); e.g. 1.2.3.4 or example.com")
 	flag.StringVar(&webServiceFlag, "web-service", "", "optional: service to reload (e.g. nginx, apache2, httpd)")
 	flag.Parse()
 
 	// env fallbacks
-	pemPath := firstNonEmpty(pemPathFlag, os.Getenv("PEM"))
+	certPath := firstNonEmpty(certPathFlag, os.Getenv("CERT"))
 	wellKnownHost := firstNonEmpty(wellKnownHostFlag, os.Getenv("WELL_KNOWN"))
 	webService := firstNonEmpty(webServiceFlag, os.Getenv("WEB_SERVICE"))
 
-	if strings.TrimSpace(pemPath) == "" || strings.TrimSpace(wellKnownHost) == "" {
-		slog.Error("missing required parameters", "pem", pemPath, "well_known_host", wellKnownHost)
+	if strings.TrimSpace(certPath) == "" || strings.TrimSpace(wellKnownHost) == "" {
+		slog.Error("missing required parameters", "cert", certPath, "well_known_host", wellKnownHost)
 		flag.Usage()
 		os.Exit(2)
 	}
 
-	// Manufacture URL from host + PEM basename
-	wkURL, err := buildWellKnownURL(pemPath, wellKnownHost)
+	// Manufacture URL from host + CERT basename
+	wkURL, err := buildWellKnownURL(certPath, wellKnownHost)
 	if err != nil {
 		slog.Error("build well-known URL failed", "error", err)
 		os.Exit(2)
 	}
 	slog.Info("using well-known URL", "url", wkURL)
 
-	// Bootstrap if PEM missing
-	if _, err := os.Stat(pemPath); errors.Is(err, os.ErrNotExist) {
-		slog.Info("pem not found; bootstrapping from well-known", "pem", pemPath)
-		if err := bootstrapFromWellKnown(pemPath, wkURL); err != nil {
+	// Bootstrap if CERT missing
+	if _, err := os.Stat(certPath); errors.Is(err, os.ErrNotExist) {
+		slog.Info("cert not found; bootstrapping from well-known", "cert", certPath)
+		if err := bootstrapFromWellKnown(certPath, wkURL); err != nil {
 			slog.Error("bootstrap failed", "error", err)
 			os.Exit(1)
 		}
@@ -68,7 +68,7 @@ func main() {
 	}
 
 	// Single check then exit (one-shot)
-	if err := checkOnce(pemPath, wkURL, webService); err != nil {
+	if err := checkOnce(certPath, wkURL, webService); err != nil {
 		slog.Warn("checkOnce", "error", err)
 		os.Exit(1)
 	}
@@ -83,13 +83,13 @@ func firstNonEmpty(a, b string) string {
 
 // buildWellKnownURL constructs:
 //
-//	http://<host>:47900/.well-known/ssl/<basename(pemPath)>
+//	http://<host>:47900/.well-known/ssl/<basename(certPath)>
 //
 // It tolerates users accidentally passing scheme or a host:port, and normalizes to :47900.
-func buildWellKnownURL(pemPath, hostInput string) (string, error) {
-	base := filepath.Base(pemPath)
+func buildWellKnownURL(certPath, hostInput string) (string, error) {
+	base := filepath.Base(certPath)
 	if base == "." || base == "/" || base == "" {
-		return "", fmt.Errorf("invalid pem basename derived from %q", pemPath)
+		return "", fmt.Errorf("invalid cert basename derived from %q", certPath)
 	}
 
 	host := strings.TrimSpace(hostInput)
@@ -118,35 +118,35 @@ func buildWellKnownURL(pemPath, hostInput string) (string, error) {
 	}).String(), nil
 }
 
-func bootstrapFromWellKnown(pemPath, wellKnownURL string) error {
+func bootstrapFromWellKnown(certPath, wellKnownURL string) error {
 	body, err := httpGet(wellKnownURL, 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("fetch well-known: %w", err)
 	}
-	certs, err := parsePEMCerts(body)
+	certs, err := parseCerts(body)
 	if err != nil {
-		return fmt.Errorf("parse well-known pem: %w", err)
+		return fmt.Errorf("parse well-known cert: %w", err)
 	}
 	if len(certs) == 0 {
 		return errors.New("no certificates found at well-known")
 	}
 	leaf := pickLeaf(certs)
 
-	if err := os.MkdirAll(filepath.Dir(pemPath), 0o755); err != nil {
-		return fmt.Errorf("mkdir -p %s: %w", filepath.Dir(pemPath), err)
+	if err := os.MkdirAll(filepath.Dir(certPath), 0o755); err != nil {
+		return fmt.Errorf("mkdir -p %s: %w", filepath.Dir(certPath), err)
 	}
-	if err := replacePEMFile(pemPath, body); err != nil {
-		return fmt.Errorf("install pem: %w", err)
+	if err := replaceCertFile(certPath, body); err != nil {
+		return fmt.Errorf("install cert: %w", err)
 	}
 	slog.Info("bootstrapped certificate",
 		"cn", leaf.Subject.CommonName,
 		"not_after", leaf.NotAfter.UTC().Format(time.RFC3339),
-		"path", pemPath)
+		"path", certPath)
 	return nil
 }
 
-func checkOnce(pemPath, wellKnownURL, webService string) error {
-	curCert, _, err := loadLeafCertFromPEMFile(pemPath)
+func checkOnce(certPath, wellKnownURL, webService string) error {
+	curCert, _, err := loadLeafCertFromCertFile(certPath)
 	if err != nil {
 		return fmt.Errorf("load current cert: %w", err)
 	}
@@ -167,9 +167,9 @@ func checkOnce(pemPath, wellKnownURL, webService string) error {
 	if err != nil {
 		return fmt.Errorf("fetch well-known: %w", err)
 	}
-	newCerts, err := parsePEMCerts(body)
+	newCerts, err := parseCerts(body)
 	if err != nil {
-		return fmt.Errorf("parse new PEM: %w", err)
+		return fmt.Errorf("parse new cert: %w", err)
 	}
 	if len(newCerts) == 0 {
 		return errors.New("no certificates found in well-known response")
@@ -187,13 +187,13 @@ func checkOnce(pemPath, wellKnownURL, webService string) error {
 	}
 
 	// Persist the entire response (verbatim)
-	if err := replacePEMFile(pemPath, body); err != nil {
-		return fmt.Errorf("replace pem: %w", err)
+	if err := replaceCertFile(certPath, body); err != nil {
+		return fmt.Errorf("replace cert: %w", err)
 	}
 	slog.Info("certificate replaced",
 		"old_not_after", curCert.NotAfter.UTC().Format(time.RFC3339),
 		"new_not_after", newLeaf.NotAfter.UTC().Format(time.RFC3339),
-		"path", pemPath)
+		"path", certPath)
 
 	if err := reloadServices(webService); err != nil {
 		slog.Warn("service reload", "error", err)
@@ -215,9 +215,9 @@ func httpGet(rawURL string, timeout time.Duration) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func parsePEMCerts(pemBytes []byte) ([]*x509.Certificate, error) {
+func parseCerts(certBytes []byte) ([]*x509.Certificate, error) {
 	var certs []*x509.Certificate
-	rest := pemBytes
+	rest := certBytes
 	for {
 		var block *pem.Block
 		block, rest = pem.Decode(rest)
@@ -236,7 +236,7 @@ func parsePEMCerts(pemBytes []byte) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func loadLeafCertFromPEMFile(path string) (*x509.Certificate, []byte, error) {
+func loadLeafCertFromCertFile(path string) (*x509.Certificate, []byte, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, err
@@ -268,7 +268,7 @@ func loadLeafCertFromPEMFile(path string) (*x509.Certificate, []byte, error) {
 		}
 	}
 	if leaf == nil {
-		return nil, nil, errors.New("no certificate block found in PEM file")
+		return nil, nil, errors.New("no certificate block found in cert file")
 	}
 	return leaf, leafDER, nil
 }
@@ -317,7 +317,7 @@ func dnsMatch(pattern, host string) bool {
 	return false
 }
 
-func replacePEMFile(origPath string, responseBody []byte) error {
+func replaceCertFile(origPath string, responseBody []byte) error {
 	dir := filepath.Dir(origPath)
 	base := filepath.Base(origPath)
 	ts := time.Now().Format(replacedSuffixFmt)
