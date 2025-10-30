@@ -13,11 +13,11 @@ fmt:
 	go fmt ./...
 
 build: fmt
-	go build -C cmd/$(APP) -o ../../bin/$(APP) -v .
-	GOOS=windows GOARCH=amd64 go build -C cmd/$(APP) -o ../../bin/$(APP).exe -v .
-	ls -lh bin
-	file bin/*
-	ldd bin/*
+	-GOOS=linux GOARCH=amd64 go build -C cmd/$(APP) -o ../../bin/$(APP) -v .
+	-GOOS=windows GOARCH=amd64 go build -C cmd/$(APP) -o ../../bin/$(APP).exe -v .
+	-ls -lh bin
+	-file bin/*
+	-ldd bin/*
 
 test1: build mkcert
 	bin/$(APP) --cert example/server.crt --key example/server.key --valid-client-domain example.local
@@ -26,5 +26,6 @@ test2: build mkcert
 	bin/$(APP) --cert example/server.crt --key example/server.key --valid-client-domain mshome.net
 
 mkcert:
-	-rm example/server.crt example/server.key
+	mkdir -p example
+	-rm example/*
 	openssl req -new -x509 -days 5 -nodes -text -out example/server.crt -keyout example/server.key -subj "/CN=localhost"
