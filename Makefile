@@ -6,9 +6,9 @@ CW=cert-watcher
 usage:
 	@echo Usage
 	@echo
-	@echo "make build             - build both apps - bundler and watcher"
-	@echo "make build-bundler     - build the bundler"
-	@echo "make build-watcher     - build the watcher"
+	@echo "make build             - build both apps - server and watcher"
+	@echo "make build-server      - build the cert-bundler server app"
+	@echo "make build-watcher     - build the client watcher app"
 	@echo "make test-bundler-fail - should fail"
 	@echo "make test-bundler-win  - should succeed when bundler is run on WSL and tested from a Window CMD box"
 	@echo "make test-bundler-wsl  - should succeed when bundler is run on WSL and tested from another wsl shell"
@@ -16,9 +16,9 @@ usage:
 fmt:
 	go fmt ./...
 
-build: fmt build-bundler build-watcher lsbin
+build: fmt build-server build-watcher lsbin
 
-build-bundler:
+build-server:
 	-GOOS=linux GOARCH=amd64 go build -C cmd/$(CB) -o ../../bin/$(CB) -v .
 	-GOOS=windows GOARCH=amd64 go build -C cmd/$(CB) -o ../../bin/$(CB).exe -v .
 
@@ -30,13 +30,13 @@ lsbin:
 	-file bin/*
 	-ldd bin/*
 
-test-bundler-fail: build mkcert
+test-server-fail: build mkcert
 	bin/$(CB) --cert example/server.crt --key example/server.key --valid-client-domain example.local
 
-test-bundler-win: build mkcert
+test-server-win: build mkcert
 	bin/$(CB) --cert example/server.crt --key example/server.key --valid-client-domain mshome.net
 
-test-bundler-wsl: build mkcert
+test-server-wsl: build mkcert
 	bin/$(CB) --cert example/server.crt --key example/server.key --valid-client-domain wsl.local
 
 mkcert:
